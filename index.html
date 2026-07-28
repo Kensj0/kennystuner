@@ -46,6 +46,26 @@
     font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; transition:background 150ms ease, color 150ms ease; }
   .hz-toggle button.on{ background:var(--brass); color:#241d10; }
 
+  /* readme button (top-left) + modal */
+  .readme-btn{ position:absolute; top:20px; left:14px; z-index:5; display:inline-flex; align-items:center; gap:5px;
+    border:1px solid var(--wood-line); border-radius:999px; background:transparent; color:var(--ivory-dim);
+    padding:6px 11px 6px 10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:11px; font-weight:600;
+    transition:color 150ms ease, border-color 150ms ease; }
+  .readme-btn:hover{ color:var(--brass); border-color:var(--brass); }
+  .readme-btn svg{ opacity:.9; }
+  .readme-backdrop{ position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:70; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .readme-backdrop[hidden]{ display:none; }
+  .readme-card{ width:100%; max-width:440px; max-height:82vh; overflow-y:auto; background:var(--bg-2); border:1px solid var(--wood-line); border-radius:16px; box-shadow:var(--shadow); padding:22px 22px 24px; -webkit-overflow-scrolling:touch; }
+  .readme-card h2{ font-family:'Fraunces',serif; font-weight:600; font-size:21px; margin:0 0 3px; }
+  .readme-card .sub{ color:var(--ivory-dim); font-size:12px; margin-bottom:18px; }
+  .readme-sec{ margin-bottom:14px; }
+  .readme-sec h3{ font-family:'Inter',sans-serif; font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--brass); margin:0 0 4px; }
+  .readme-sec p{ margin:0; font-size:13px; line-height:1.5; color:var(--ivory); }
+  .readme-sec b, .readme-tip b{ color:var(--brass-bright); font-weight:600; }
+  .readme-tip{ background:var(--bg-1); border-left:2px solid var(--brass); border-radius:9px; padding:12px 14px; font-size:13px; line-height:1.5; color:var(--ivory); }
+  .readme-close{ display:block; margin:20px auto 0; background:linear-gradient(180deg,var(--brass-bright),var(--brass)); color:#241d10; border:none; border-radius:999px; padding:11px 28px; font-family:'Inter',sans-serif; font-weight:600; font-size:14px; cursor:pointer; }
+  .readme-close:active{ transform:scale(0.97); }
+
   /* dots / view switch */
   .dots{ display:flex; gap:8px; justify-content:center; margin-bottom:14px; }
   .dot{ width:8px; height:8px; border-radius:50%; background:var(--wood-line); border:none; padding:0; cursor:pointer; transition:all 200ms ease; }
@@ -162,9 +182,14 @@
 </head>
 <body>
 <div class="wrap">
+  <button class="readme-btn" id="readmeBtn" aria-label="Readme">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    Readme
+  </button>
+
   <div class="hz-toggle" id="hzToggle">
-    <button data-hz="440" class="on">440</button>
-    <button data-hz="432">432</button>
+    <button data-hz="440" class="on">440hz</button>
+    <button data-hz="432">432hz</button>
   </div>
 
   <div class="head">
@@ -210,7 +235,6 @@
         <canvas id="spectro"></canvas>
         <svg id="grid" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
         <svg id="gridLabels" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;"></svg>
-        <div class="spectro-hint">live · older sound scrolls left · tuning notes highlighted</div>
       </div>
       <div class="knobs" id="knobs"></div>
     </section>
@@ -224,6 +248,49 @@
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
       Buy me a coffee
     </a>
+  </div>
+
+  <div class="readme-backdrop" id="readmeModal" hidden>
+    <div class="readme-card">
+      <h2>Kenny´s Tuner</h2>
+      <div class="sub">A quick guide to everything it does.</div>
+
+      <div class="readme-sec">
+        <h3>Tuner</h3>
+        <p>Tap <b>Start tuner</b>, allow the microphone, and play a note. The needle shows if you're sharp or flat; the big letter is the detected note and turns green when you're in tune.</p>
+      </div>
+
+      <div class="readme-sec">
+        <h3>Instrument &amp; tuning</h3>
+        <p>Pick your instrument from the tabs, then choose a tuning from the dropdown (Standard, Drop D, DADGAD, and more). Choose <b>Custom…</b> to set each string yourself — the strings blink until you've picked a note for every one.</p>
+      </div>
+
+      <div class="readme-sec">
+        <h3>Reference pitch</h3>
+        <p>The toggle in the top-right switches between <b>440hz</b> (standard) and <b>432hz</b>. Everything retunes to the chosen reference.</p>
+      </div>
+
+      <div class="readme-sec">
+        <h3>Spectrum</h3>
+        <p>A live view of everything the microphone hears, scrolling by in real time. Each note has its own line; the notes of your selected tuning are marked by the bright letters on the left.</p>
+      </div>
+
+      <div class="readme-tip">
+        <b>Tune through noise.</b> Because Spectrum shows the true pitch of every sound, you can tune by watching where your note's line sits — even in a loud, noisy room. The needle can be thrown off by background sound, but in Spectrum you can pick your string's line out of the noise.
+      </div>
+
+      <div class="readme-sec" style="margin-top:15px">
+        <h3>Spectrum knobs</h3>
+        <p><b>Resolution</b> sharpens pitch detail. <b>Sensitivity</b> sets how quiet a sound still registers. <b>Noise Filter</b> strips away background hiss so only clear notes show.</p>
+      </div>
+
+      <div class="readme-sec">
+        <h3>Offline</h3>
+        <p>Add it to your home screen to use it like a real app — it works fully offline once installed.</p>
+      </div>
+
+      <button class="readme-close" id="readmeClose">Got it</button>
+    </div>
   </div>
 </div>
 
@@ -296,6 +363,12 @@
   function tuningToMidi(t){ return t.notes.map(n=>noteToMidi(n.label,n.oct)); }
 
   function pcHue(pcCont){ return (60 + (pcCont/12)*300) % 360; }
+
+  // Shift the whole pitch-class axis up by half a semitone so the wrap seam
+  // falls between B and C (instead of cutting through C at the very bottom edge).
+  // Everything — gridlines, labels, energy and colours — uses this one mapping.
+  const V_SHIFT = 0.5/12;
+  function yFrac(pc){ let v=(1 - pc/12) - V_SHIFT; v=v-Math.floor(v); return v; } // cyclic [0,1)
 
   /* ---------- DOM refs ---------- */
   const stringsEl=document.getElementById('strings');
@@ -483,19 +556,16 @@
   function buildGrid(){
     gridSvg.innerHTML=''; labelSvg.innerHTML='';
     rowsTopToBottom.forEach((pc)=>{
-      const y = 100*(1 - pc/12);
-      const yc = Math.max(0.6, Math.min(99.4, y));
-      const hl = hlPcSet.has(pc);
+      const yc = Math.max(0.6, Math.min(99.4, yFrac(pc)*100));
       const line=document.createElementNS('http://www.w3.org/2000/svg','line');
       line.setAttribute('x1',0);line.setAttribute('y1',yc);line.setAttribute('x2',100);line.setAttribute('y2',yc);
-      line.setAttribute('class','gridline'+(hl?' hl':'')); gridSvg.appendChild(line);
+      line.setAttribute('class','gridline'); gridSvg.appendChild(line);  // lines stay uniform; only labels highlight
     });
     const rect=labelSvg.getBoundingClientRect();
     const ph=rect.height||600, pw=rect.width||400;
     labelSvg.setAttribute('viewBox',`0 0 ${pw} ${ph}`);
     rowsTopToBottom.forEach((pc)=>{
-      const y=ph*(1 - pc/12);
-      const yc=Math.max(14, Math.min(ph-4, y+5));
+      const yc=Math.max(14, Math.min(ph-4, yFrac(pc)*ph+5));
       const hl = hlPcSet.has(pc);
       const t=document.createElementNS('http://www.w3.org/2000/svg','text');
       t.setAttribute('x',8); t.setAttribute('y',yc);
@@ -545,7 +615,7 @@
     return [Math.round(r*255),Math.round(g*255),Math.round(b*255)];
   }
   let rowRGB=[];
-  function buildRowColors(){ rowRGB=new Array(ROWS); for(let r=0;r<ROWS;r++){ const pc=12*(1-r/ROWS); rowRGB[r]=hslToRgb(pcHue(pc)/360,0.9,0.5); } }
+  function buildRowColors(){ rowRGB=new Array(ROWS); for(let r=0;r<ROWS;r++){ let pc=(12*(1 - V_SHIFT - r/ROWS)); pc=((pc%12)+12)%12; rowRGB[r]=hslToRgb(pcHue(pc)/360,0.9,0.5); } }
   buildRowColors();
 
   function applyResolution(){
@@ -580,7 +650,8 @@
       if(m-Math.min(freqData[i-1],freqData[i+1]) < prom) continue;
       const f=i*sr/Nfft; if(f<32||f>1500) continue;
       const pcCont=((freqToMidiF(f)%12)+12)%12;
-      peaks.push({mag:m, row:Math.round(ROWS*(1-pcCont/12))});
+      let row=Math.round(yFrac(pcCont)*ROWS); if(row>=ROWS)row-=ROWS; if(row<0)row+=ROWS;
+      peaks.push({mag:m, row});
     }
     if(peaks.length>keepK){ peaks.sort((a,b)=>b.mag-a.mag); peaks.length=keepK; }
     for(let p=0;p<peaks.length;p++){
@@ -668,7 +739,7 @@
       if(mk){
         const pcCont=((freqToMidiF(freq)%12)+12)%12;
         const rect=labelSvg.getBoundingClientRect();
-        const y=(rect.height)*(1-pcCont/12);
+        const y=yFrac(pcCont)*rect.height;
         mk.style.transform=`translateY(${y}px)`; mk.style.opacity='0.9';
       }
     }
@@ -735,7 +806,7 @@
   const knobDefs=[
     {id:'res',  label:'Resolution',  get:()=>sRes,  set:v=>{sRes=v;  save('res',v);  applyResolution();}},
     {id:'sens', label:'Sensitivity', get:()=>sSens, set:v=>{sSens=v; save('sens',v);}},
-    {id:'clar', label:'Clarity',     get:()=>sClar, set:v=>{sClar=v; save('clar',v);}},
+    {id:'clar', label:'Noise Filter', get:()=>sClar, set:v=>{sClar=v; save('clar',v);}},
   ];
   const knobsWrap=document.getElementById('knobs');
   knobsWrap.insertAdjacentHTML('beforebegin',
@@ -767,12 +838,18 @@
   const dots=[...document.querySelectorAll('.dot')];
   dots.forEach(d=>d.addEventListener('click',()=>{ pager.scrollTo({left:(+d.dataset.goto)*pager.clientWidth, behavior:'smooth'}); }));
   const viewTitle=document.getElementById('viewTitle');
-  const VIEW_TITLES=['Tuner','Spectrum Tuner'];
+  const VIEW_TITLES=['Tuner','Spectrum'];
   pager.addEventListener('scroll',()=>{
     const idx=Math.round(pager.scrollLeft/pager.clientWidth);
     dots.forEach((d,i)=>d.classList.toggle('on',i===idx));
     if(VIEW_TITLES[idx]) viewTitle.textContent=VIEW_TITLES[idx];
   });
+
+  /* ---------- readme ---------- */
+  const readmeModal=document.getElementById('readmeModal');
+  document.getElementById('readmeBtn').addEventListener('click',()=>{ readmeModal.hidden=false; });
+  document.getElementById('readmeClose').addEventListener('click',()=>{ readmeModal.hidden=true; });
+  readmeModal.addEventListener('click',(e)=>{ if(e.target===readmeModal) readmeModal.hidden=true; });
 
   window.addEventListener('resize',()=>{ closeMenu(); sizeCanvas(); });
 
