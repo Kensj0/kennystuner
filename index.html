@@ -83,8 +83,12 @@
   .tick{ stroke:var(--ivory-dim); stroke-width:1.5; opacity:.5;}
   .tick.zero{ stroke:var(--brass); opacity:.9; stroke-width:2.5;}
   .tickLabel{ fill:var(--ivory-dim); font-family:'JetBrains Mono',monospace; font-size:9px; }
-  #needle,#needleShadow{ transform-origin:170px 168px; transition:transform 90ms cubic-bezier(.2,.7,.3,1); }
-  #needleShadow{ opacity:.35; filter:blur(2px); }
+  #needle,#needleShadow{ transform-origin:170px 168px; transition:transform 340ms cubic-bezier(.25,.8,.35,1); }
+  #needleShadow{ opacity:.5; filter:blur(2.5px); }
+  #needle line{ stroke:#fff6e2; stroke-width:2; }
+  #needle{ filter: drop-shadow(0 0 3px rgba(255,246,226,0.95)) drop-shadow(0 0 8px rgba(230,197,121,0.6)); }
+  #needle.tuned line{ stroke:#c8f0b0; }
+  #needle.tuned{ filter: drop-shadow(0 0 3px rgba(200,240,176,0.95)) drop-shadow(0 0 10px rgba(143,170,124,0.75)); }
   .pivot{ fill:var(--brass-bright); } .pivot-ring{ fill:none; stroke:var(--wood-line); stroke-width:3; }
   .arc-glow{ filter: drop-shadow(0 0 6px rgba(201,161,90,0.25)); }
 
@@ -211,8 +215,8 @@
       <div class="gauge-stage">
         <svg id="gauge" viewBox="0 0 340 190">
           <g id="ticks"></g>
-          <g id="needleShadow"><line x1="170" y1="168" x2="170" y2="42" stroke="#000" stroke-width="5" stroke-linecap="round"/></g>
-          <g id="needle" class="arc-glow"><line x1="170" y1="168" x2="170" y2="38" stroke="url(#needleGrad)" stroke-width="3.5" stroke-linecap="round"/></g>
+          <g id="needleShadow"><line x1="170" y1="168" x2="170" y2="40" stroke="#000" stroke-width="3" stroke-linecap="round"/></g>
+          <g id="needle"><line x1="170" y1="168" x2="170" y2="34" stroke-linecap="round"/></g>
           <circle class="pivot-ring" cx="170" cy="168" r="12"/>
           <circle class="pivot" cx="170" cy="168" r="7"/>
           <defs><linearGradient id="needleGrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0%" stop-color="#c9a15a"/><stop offset="100%" stop-color="#e6c579"/></linearGradient></defs>
@@ -260,7 +264,7 @@
 
       <div class="readme-sec">
         <h3>Tuner</h3>
-        <p>Tap <b>Start tuner</b>, allow the microphone, and play a note. The needle shows if you're sharp or flat; the big letter is the detected note and turns green when you're in tune.</p>
+        <p>Tap <b>Start tuner</b>, allow the microphone, and play a note. The needle shows if you're sharp or flat; the big letter is the detected note and turns green when you're in tune. The microphone input is automatically filtered to your instrument's frequency range, so wind, rumble and hiss are largely ignored.</p>
       </div>
 
       <div class="readme-sec">
@@ -437,6 +441,7 @@
     updateHighlight();
     buildPegs();
     updateTuningLabel();
+    applyBandFilter();
   }
 
   function updateHighlight(){
@@ -651,7 +656,7 @@
       const m=freqData[i]; if(m<gate) continue;
       if(m<freqData[i-1] || m<freqData[i+1]) continue;
       if(m-Math.min(freqData[i-1],freqData[i+1]) < prom) continue;
-      const f=i*sr/Nfft; if(f<32||f>1500) continue;
+      const f=i*sr/Nfft; if(f<bandLo*0.9||f>bandHi) continue;
       const pcCont=((freqToMidiF(f)%12)+12)%12;
       let row=Math.round(yFrac(pcCont)*ROWS); if(row>=ROWS)row-=ROWS; if(row<0)row+=ROWS;
       peaks.push({mag:m, row});
@@ -706,7 +711,33 @@
         toggleBtn=document.getElementById('toggle');
 
   let audioCtx=null, anTime=null, anFreq=null, source=null, stream=null, rafId=null, listening=false;
+  let hp1=null, hp2=null, lp1=null, lp2=null;
+  let bandLo=60, bandHi=1200;
+
+  // Derive the useful frequency window from the tuning actually in use, so a
+  // bass keeps its 41 Hz E and a violin keeps its 659 Hz E.
+  function computeBand(){
+    if(!appliedStrings.length) return {lo:60, hi:1200};
+    const freqs=appliedStrings.map(m=>midiToFreq(m));
+    const lowest=Math.min(...freqs), highest=Math.max(...freqs);
+    const lo=Math.max(26, lowest*0.72);              // safely under the lowest string
+    const hi=Math.min(3000, Math.max(900, highest*3.2)); // keep harmonics, drop hiss
+    return {lo,hi};
+  }
+  function applyBandFilter(){
+    const b=computeBand(); bandLo=b.lo; bandHi=b.hi;
+    if(hp1&&hp2&&lp1&&lp2&&audioCtx){
+      const t=audioCtx.currentTime;
+      hp1.frequency.setTargetAtTime(bandLo,t,0.01);
+      hp2.frequency.setTargetAtTime(bandLo,t,0.01);
+      lp1.frequency.setTargetAtTime(bandHi,t,0.01);
+      lp2.frequency.setTargetAtTime(bandHi,t,0.01);
+    }
+  }
+
   let smoothedCents=0, freqData=null, timeData=null;
+  let centsHist=[];          // short history for median filtering (kills outliers)
+  let needleInit=false;
 
   const liveMarkerEl=()=>document.getElementById('liveMarker');
   function update(ts){
@@ -719,20 +750,32 @@
     renderSpectro();
 
     const mk=liveMarkerEl();
-    if(freq===-1||freq<32||freq>1500){
+    // reject anything outside the instrument's own band — that's noise, not a string
+    if(freq===-1||freq<bandLo*0.9||freq>bandHi){
       centsOut.textContent='Listening…'; freqOut.innerHTML='&nbsp;'; noteOut.classList.remove('in-tune');
+      centsHist.length=0;
       if(mk) mk.style.opacity='0';
     } else {
       const noteNum=Math.round(freqToMidiF(freq));
       const targetFreq=midiToFreq(noteNum);
-      const cents=Math.floor(1200*Math.log2(freq/targetFreq));
-      smoothedCents=smoothedCents*0.6+cents*0.4;
+      const rawCents=1200*Math.log2(freq/targetFreq);
+
+      // median of the last few readings throws away single-frame glitches
+      centsHist.push(rawCents); if(centsHist.length>5) centsHist.shift();
+      const sorted=centsHist.slice().sort((a,b)=>a-b);
+      const medCents=sorted[Math.floor(sorted.length/2)];
+
+      // heavier damping so the needle settles instead of flickering
+      if(!needleInit){ smoothedCents=medCents; needleInit=true; }
+      else smoothedCents=smoothedCents*0.86+medCents*0.14;
+
       const name=NOTE_NAMES[((noteNum%12)+12)%12];
       const octave=Math.floor(noteNum/12)-1;
       const isSharp=name.includes('#');
       noteOut.innerHTML=isSharp ? name.replace('#','')+'<span class="sharp">♯</span>'+octave : name+octave;
       const inTune=Math.abs(smoothedCents)<=4;
       noteOut.classList.toggle('in-tune',inTune);
+      needle.classList.toggle('tuned',inTune);
       centsOut.innerHTML=inTune?'<b>In tune</b>':(smoothedCents>0?`<b>+${Math.round(smoothedCents)}</b> cents · too high`:`<b>${Math.round(smoothedCents)}</b> cents · too low`);
       freqOut.textContent=freq.toFixed(2)+' Hz';
       setNeedle(smoothedCents);
@@ -760,9 +803,19 @@
       if(audioCtx.state==='suspended') await audioCtx.resume();
       stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
       source=audioCtx.createMediaStreamSource(stream);
+      // --- noise control: band-limit the mic to the instrument's own range ---
+      // Two cascaded high-pass stages (24 dB/oct) kill wind, handling rumble and
+      // room hum below the lowest string; the low-pass removes hiss and cymbal-
+      // type clatter well above the highest string.
+      hp1=audioCtx.createBiquadFilter(); hp1.type='highpass'; hp1.Q.value=0.707;
+      hp2=audioCtx.createBiquadFilter(); hp2.type='highpass'; hp2.Q.value=0.707;
+      lp1=audioCtx.createBiquadFilter(); lp1.type='lowpass';  lp1.Q.value=0.707;
+      lp2=audioCtx.createBiquadFilter(); lp2.type='lowpass';  lp2.Q.value=0.707;
       anTime=audioCtx.createAnalyser(); anTime.fftSize=2048;
       anFreq=audioCtx.createAnalyser(); anFreq.fftSize=RES[sRes].fft; anFreq.smoothingTimeConstant=0.25;
-      source.connect(anTime); source.connect(anFreq);
+      source.connect(hp1); hp1.connect(hp2); hp2.connect(lp1); lp1.connect(lp2);
+      lp2.connect(anTime); lp2.connect(anFreq);
+      applyBandFilter();
       timeData=new Float32Array(anTime.fftSize);
       freqData=new Uint8Array(anFreq.frequencyBinCount);
       sizeCanvas();
@@ -788,6 +841,7 @@
     statusEl.textContent='The microphone is used only locally in your browser';
     centsOut.textContent='Swipe to Spectrum view'; noteOut.textContent='–';
     noteOut.classList.remove('in-tune'); freqOut.innerHTML='&nbsp;'; setNeedle(0);
+    needle.classList.remove('tuned'); centsHist.length=0; needleInit=false; smoothedCents=0;
     pegEls.forEach(p=>p.classList.remove('active'));
     const mk=liveMarkerEl(); if(mk) mk.style.opacity='0';
   }
@@ -801,6 +855,7 @@
       A4=parseInt(b.dataset.hz,10); save('a4',A4);
       [...hzToggle.querySelectorAll('button')].forEach(x=>x.classList.toggle('on', parseInt(x.dataset.hz,10)===A4));
       buildPegs();  // freq labels shift with reference
+      applyBandFilter();
     });
   });
 
