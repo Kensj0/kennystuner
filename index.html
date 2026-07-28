@@ -36,20 +36,21 @@
     height:100vh; display:flex; flex-direction:column; align-items:center;
     padding:22px 0 20px; max-width:480px; margin:0 auto;
   }
-  .head{ text-align:center; padding:0 20px; width:100%; }
-  .eyebrow{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--brass); opacity:.85; font-weight:600; }
-  h1{ font-family:'Fraunces', serif; font-weight:600; font-size:26px; margin:2px 0 12px; letter-spacing:-0.01em; }
+  .topbar{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; width:100%; padding:0 12px; }
+  .head{ text-align:center; flex:1; min-width:0; padding-top:1px; }
+  .eyebrow{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--brass); opacity:.85; font-weight:600; white-space:nowrap; }
+  h1{ font-family:'Fraunces', serif; font-weight:600; font-size:clamp(19px,5.6vw,26px); margin:2px 0 12px; letter-spacing:-0.01em; white-space:nowrap; }
 
   /* 432/440 toggle — top-right, visible on both views */
-  .hz-toggle{ position:absolute; top:20px; right:14px; display:flex; border:1px solid var(--wood-line); border-radius:999px; overflow:hidden; }
-  .hz-toggle button{ appearance:none; border:none; background:transparent; color:var(--ivory-dim); padding:6px 10px; cursor:pointer;
+  .hz-toggle{ flex:0 0 auto; display:flex; border:1px solid var(--wood-line); border-radius:999px; overflow:hidden; margin-top:2px; }
+  .hz-toggle button{ appearance:none; border:none; background:transparent; color:var(--ivory-dim); padding:9px 11px; min-height:34px; cursor:pointer;
     font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; transition:background 150ms ease, color 150ms ease; }
   .hz-toggle button.on{ background:var(--brass); color:#241d10; }
 
   /* readme button (top-left) + modal */
-  .readme-btn{ position:absolute; top:20px; left:14px; z-index:5; display:inline-flex; align-items:center; gap:5px;
+  .readme-btn{ flex:0 0 auto; z-index:5; display:inline-flex; align-items:center; gap:5px; margin-top:2px;
     border:1px solid var(--wood-line); border-radius:999px; background:transparent; color:var(--ivory-dim);
-    padding:6px 11px 6px 10px; cursor:pointer; font-family:'Inter',sans-serif; font-size:11px; font-weight:600;
+    padding:9px 12px 9px 10px; min-height:34px; cursor:pointer; font-family:'Inter',sans-serif; font-size:11px; font-weight:600;
     transition:color 150ms ease, border-color 150ms ease; }
   .readme-btn:hover{ color:var(--brass); border-color:var(--brass); }
   .readme-btn svg{ opacity:.9; }
@@ -182,22 +183,24 @@
 </head>
 <body>
 <div class="wrap">
-  <button class="readme-btn" id="readmeBtn" aria-label="Readme">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    Readme
-  </button>
+  <div class="topbar">
+    <button class="readme-btn" id="readmeBtn" aria-label="Readme">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      Readme
+    </button>
 
-  <div class="hz-toggle" id="hzToggle">
-    <button data-hz="440" class="on">440hz</button>
-    <button data-hz="432">432hz</button>
-  </div>
+    <div class="head">
+      <div class="eyebrow">Kenny´s Workshop</div>
+      <h1 id="viewTitle">Tuner</h1>
+      <div class="dots">
+        <button class="dot on" data-goto="0" aria-label="Tuner"></button>
+        <button class="dot" data-goto="1" aria-label="Spectrum Tuner"></button>
+      </div>
+    </div>
 
-  <div class="head">
-    <div class="eyebrow">Kenny´s Workshop</div>
-    <h1 id="viewTitle">Tuner</h1>
-    <div class="dots">
-      <button class="dot on" data-goto="0" aria-label="Tuner"></button>
-      <button class="dot" data-goto="1" aria-label="Spectrum Tuner"></button>
+    <div class="hz-toggle" id="hzToggle">
+      <button data-hz="440" class="on">440hz</button>
+      <button data-hz="432">432hz</button>
     </div>
   </div>
 
@@ -217,7 +220,7 @@
       </div>
       <div class="readout">
         <div class="note" id="noteOut">–</div>
-        <div class="cents" id="centsOut">Tap start and play a string</div>
+        <div class="cents" id="centsOut">Swipe to Spectrum view</div>
         <div class="freq" id="freqOut">&nbsp;</div>
       </div>
       <div class="instr-tabs" id="instrTabs"></div>
@@ -783,7 +786,7 @@
     if(audioCtx) audioCtx.close();
     toggleBtn.textContent='Start tuner'; toggleBtn.classList.remove('listening');
     statusEl.textContent='The microphone is used only locally in your browser';
-    centsOut.textContent='Tap start and play a string'; noteOut.textContent='–';
+    centsOut.textContent='Swipe to Spectrum view'; noteOut.textContent='–';
     noteOut.classList.remove('in-tune'); freqOut.innerHTML='&nbsp;'; setNeedle(0);
     pegEls.forEach(p=>p.classList.remove('active'));
     const mk=liveMarkerEl(); if(mk) mk.style.opacity='0';
